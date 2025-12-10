@@ -1,4 +1,6 @@
+import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 class ResidualBlock(nn.Module):
     def _init_(self, in_channels, out_channels, stride=1):
@@ -18,3 +20,18 @@ class ResidualBlock(nn.Module):
         def forward(self, x):
             out = self.conv1(x)
             out = self.bn1(out)
+            out = torch.relu(out)
+            out = self.conv2(x)
+            out = self.bn2(out)
+            shortcut = self.shortcut(x) if self.use_shortcut else x
+            out_add = out + shortcut
+            out = torch.relu(out_add)
+
+            return out
+
+    class AudioCNN(nn.Module):
+        def _init_(self, num_classes=50):
+            super().__init__()           
+            self.conv1 = nn.Sequential(nn.Conv2d(1, 64, 7, stride=2, padding=3, bias=False), nn.BatchNorm2d(64), nn.ReLU(inplace=True))
+             
+        
