@@ -1,5 +1,8 @@
 import sys
-import modal
+import modal 
+from torch.utils.data import Dataset
+
+from model import AudioCNN
 
 app = modal.App("audio-cnn")
 
@@ -16,20 +19,16 @@ image = (modal.Image.debian_slim()
          .add_local_python_source("model"))
 
 volume = modal.Volume.from_name("esc50-data", create_if_missing=True)
-modal_volume = modal.Volume.from_name("esc-model", create_if_missing=True)
+model_volume = modal.Volume.from_name("esc-model", create_if_missing=True)
 
+class ESC50Dataset(Dataset):
+    def __init__(self, data_dir, metadata_file):
+        super().__init__()
 
-
-@app.function()
-def f(i):
-    if i % 2 == 0:
-        print("Hello", i)
-        return i  
-    else:
-        print("world", i, file=sys.stderr)
-        return i * i
+@app.function(image=image, gpu="A10G", volumes={"/data": volume, "/models": model_volume}, timeout=60 * 60 * 3)
+def train():
+    print("training")
 
 @app.local_entrypoint()
 def main():
-    print(f.local(10))
-    print(f.remote(10))
+    train.remote()
