@@ -32,6 +32,12 @@ class ResidualBlock(nn.Module):
     class AudioCNN(nn.Module):
         def _init_(self, num_classes=50):
             super().__init__()           
-            self.conv1 = nn.Sequential(nn.Conv2d(1, 64, 7, stride=2, padding=3, bias=False), nn.BatchNorm2d(64), nn.ReLU(inplace=True))
-             
-        
+            self.conv1 = nn.Sequential(nn.Conv2d(1, 64, 7, stride=2, padding=3, bias=False), nn.BatchNorm2d(64), nn.ReLU(inplace=True), nn.MaxPool2d(3, stirde=2, padding=1))
+            self.layer1 = nn.ModuleList(
+                [ResidualBlock(64, 64) for i in range (3)])
+            self.layer2 = nn.ModuleList(
+                [ResidualBlock(64 if i == 0 else 128, 128) for i in range (4)])
+            self.layer3 = nn.ModuleList(
+                [ResidualBlock(128 if i == 0 else 256, 256) for i in range (6)])
+            self.layer4 = nn.ModuleList(
+                [ResidualBlock(256 if i == 0 else 512, 512) for i in range (3)])
