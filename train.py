@@ -2,7 +2,7 @@ from pathlib import Path
 import sys
 import pandas as pd
 import numpy as np
-
+import torchaudio
 import modal
 import torch
 from torch.utils.data import Dataset, DataLoader
@@ -206,8 +206,8 @@ def train():
             accuracy = 100 * correct / total
             avg_val_loss = val_loss / len(test_dataloader)
 
-            writer.add_scalar('Loss/Train', avg_epoch_loss, epoch)
-            writer.add_scalar('Learning_Rate', optimizer.param_groups[0]['lr'], epoch)
+            writer.add_scalar('Loss/Validation', avg_val_loss, epoch)
+            writer.add_scalar('Accuracy/Validation', accuracy, epoch)
             
             print(f'Epoch {epoch+1} Loss: {avg_epoch_loss:.4ef}, Val Loss: {avg_val_loss:.4ef}, Accuracy: {accuracy:.2f}%')
 
@@ -221,6 +221,7 @@ def train():
                 }, '/model$/best_model.pth')
                 print(f'New best model saved: {accuracy:2f}%')
 
+        writer.close()
         print(f'Training completed! Best accuracy: {best_accuracy:.2f}%')
 
 
