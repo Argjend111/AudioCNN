@@ -2,7 +2,7 @@ from pathlib import Path
 import sys
 import pandas as pd
 import numpy as np
-import torchaudio
+
 import modal
 import torch
 from torch.utils.data import Dataset, DataLoader
@@ -128,9 +128,11 @@ def train():
         T.AmplitudeToDB()
     )
 
-    train_dataset = ESC50Dataset(data_dir=esc50_dir, metadata_file=esc50_dir / "meta" / "esc50.csv", split="train", transform=train_transform)
+    train_dataset = ESC50Dataset(
+        data_dir=esc50_dir, metadata_file=esc50_dir / "meta" / "esc50.csv", split="train", transform=train_transform)
 
-    val_dataset = ESC50Dataset(data_dir=esc50_dir, metadata_file=esc50_dir / "meta" / "esc50.csv", split="val", transform=val_transform)
+    val_dataset = ESC50Dataset(
+        data_dir=esc50_dir, metadata_file=esc50_dir / "meta" / "esc50.csv", split="test", transform=val_transform)
 
     print("Training samples:", len(train_dataset))
     print("Val samples:", len(val_dataset))
