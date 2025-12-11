@@ -22,6 +22,7 @@ image = (
     modal.Image.debian_slim()
     .pip_install_from_requirements("requirements.txt")
     .apt_install(["wget", "unzip", "ffmpeg", "libsndfile1"])
+    .pip_install("torchcodec")
     .run_commands([
         "cd /tmp && wget https://github.com/karolpiczak/ESC-50/archive/master.zip -O esc50.zip",
         "cd /tmp && unzip esc50.zip",
@@ -73,13 +74,10 @@ class ESC50Dataset(Dataset):
 
 def mixup_data(x, y):
     lam = np.random.beta(0.2, 0.2)
-
     batch_size = x.size(0)
     index = torch.randperm(batch_size).to(x.device)
-
-    (0.7 * x)
-    mixed_x = lam * x + (1- lam) * x[index, :]
-    y_a, y_b = y, y[index] 
+    mixed_x = lam * x + (1 - lam) * x[index, :]
+    y_a, y_b = y, y[index]
     return mixed_x, y_a, y_b, lam
 
 def mixup_criterion(criterion, pred, y_a, y_b, lam):
@@ -97,8 +95,6 @@ def train():
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     log_dir = f'/models/tensorboard_logs/run_{timestamp}'
     writer = SummaryWriter(log_dir)
-
-
 
     esc50_dir = Path("/opt/esc50-data")
 
@@ -144,16 +140,16 @@ def train():
     model = AudioCNN(num_classes=len(train_dataset.classes))
     model.to(device)
 
-    num_epochs = 100
+    num_epochs = 10
     criterion = nn.CrossEntropyLoss(label_smoothing=0.1)
     optimizer = optim.AdamW(model.parameters(), lr=0.0005, weight_decay=0.01)
 
     scheduler = OneCycleLR(
-    optimizer,
-    max_lr=0.002,
-    epochs=num_epochs,
-    steps_per_epoch=len(train_dataloader),
-    pct_start=0.1
+        optimizer,
+        max_lr=0.002,
+        epochs=num_epochs,
+        steps_per_epoch=len(train_dataloader),
+        pct_start=0.1
     )
 
     best_accuracy = 0.0
@@ -164,25 +160,23 @@ def train():
         epoch_loss = 0.0
 
         progress_bar = tqdm(train_dataloader, desc=f'Epoch  {epoch+1}/{num_epochs}')
-        for data,  target in progress_bar:
+        for data, target in progress_bar:
             data, target = data.to(device), target.to(device)
 
             if np.random.random() > 0.7:
-              data, target_a, target_b, lam = mixup_data(data,target)
-              output = model(data)
-            loss = mixup_criterion(
-                criterion, output, target_a, target_b, lam
-            )
-        else:
-            output = model(data)
-            loss = criterion(output, target)
+                data, target_a, target_b, lam = mixup_data(data, target)
+                output = model(data)
+                loss = mixup_criterion(criterion, output, target_a, target_b, lam)
+            else:
+                output = model(data)
+                loss = criterion(output, target)
 
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
             scheduler.step()
 
-            epoch_loss += loss.item() 
+            epoch_loss += loss.item()
             progress_bar.set_postfix({'loss': f'{loss.item():.4f}'})
 
         avg_epoch_loss = epoch_loss / len(train_dataloader)
@@ -198,35 +192,33 @@ def train():
             for data, target in test_dataloader:
                 data, target = data.to(device), target.to(device)
                 outputs = model(data)
-                loss = criterion(output, target)
+                loss = criterion(outputs, target)
                 val_loss += loss.item()
 
                 _, predicted = torch.max(outputs.data, 1)
                 total += target.size(0)
                 correct += (predicted == target).sum().item()
 
-            accuracy = 100 * correct / total
-            avg_val_loss = val_loss / len(test_dataloader)
+        accuracy = 100 * correct / total
+        avg_val_loss = val_loss / len(test_dataloader)
 
-            writer.add_scalar('Loss/Validation', avg_val_loss, epoch)
-            writer.add_scalar('Accuracy/Validation', accuracy, epoch)
-            
-            print(f'Epoch {epoch+1} Loss: {avg_epoch_loss:.4ef}, Val Loss: {avg_val_loss:.4ef}, Accuracy: {accuracy:.2f}%')
+        writer.add_scalar('Loss/Validation', avg_val_loss, epoch)
+        writer.add_scalar('Accuracy/Validation', accuracy, epoch)
 
-            if accuracy > best_accuracy:
-                best_accuracy = accuracy
-                torch.save({
-                    'model_state_dict': model.state_dict(),
-                    'accuracy': accuracy,
-                    'epoch':epoch,
-                    'classes':train_dataset.classes,
-                }, '/model$/best_model.pth')
-                print(f'New best model saved: {accuracy:2f}%')
+        print(f'Epoch {epoch+1} Loss: {avg_epoch_loss:.4f}, Val Loss: {avg_val_loss:.4f}, Accuracy: {accuracy:.2f}%')
 
-        writer.close()
-        print(f'Training completed! Best accuracy: {best_accuracy:.2f}%')
+        if accuracy > best_accuracy:
+            best_accuracy = accuracy
+            torch.save({
+                'model_state_dict': model.state_dict(),
+                'accuracy': accuracy,
+                'epoch': epoch,
+                'classes': train_dataset.classes,
+            }, '/models/best_model.pth')
+            print(f'New best model saved: {accuracy:.2f}%')
 
-
+    writer.close()
+    print(f'Training completed! Best accuracy: {best_accuracy:.2f}%')
 
 @app.local_entrypoint()
 def main():
