@@ -100,7 +100,7 @@ class AudioClassifier:
 
             viz_data = {}
             for name, tensor in feature_maps.items():
-                if tensor.dim() == 4:  # [batch_size, channels, height, width]
+                if tensor.dim() == 4:
                     aggregated_tensor = torch.mean(tensor, dim=1)
                     squeezed_tensor = aggregated_tensor.squeeze(0)
                     numpy_array = squeezed_tensor.cpu().numpy()
