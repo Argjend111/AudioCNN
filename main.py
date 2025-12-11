@@ -17,6 +17,7 @@ app = modal.App("audio-cnn")
 
 image = (modal.Image.debian_slim
         .pip_install_from_requirments("requirements.txt")
+        .apt_install(["libsndfile1"])
         .add_local_python_source("modal"))
 
 model_volume = modal.Volume.from_name("esc-model")
@@ -44,7 +45,43 @@ class AudioProcessor:
 
         return spectrogram.unsqueez(0)
     
+class InferenceRequest(BaseModel):
+    audio_data: str
+    
 @app.cls(image=image, gpu="A10G", volumes={"/models": model_volume}, scaledown_window=15)    
 class AudioClassifier:
+     @modal.enter()
      def load_model(self):
-        pass
+        print("Loading models on enter")
+
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+     
+        checkpoint = torch.load('/models/best_model.pth', map_location=self.device)
+
+        self.classes = checkpoint['classes']
+
+        self.model = AudioCNN(num_classes=len(self.classes))
+        self.model.load_state_dict(checkpoint['model_state_dict'])
+        self.model.to(self.device)
+        self.model.eval()
+
+        self.audio_processor = AudioProcessor()
+        print("Model loaded on enter")
+
+        @modal.fastapi_endpoint(method="POST")
+        def inference(self, request: InferenceRequest):
+            audio_bytes = base64.b64decode(request.audio_data)
+
+            audio_data, sample_rate =  sf.read(io.BytesIO(audio_bytes), dtype="float32")
+
+            if audio_data.ndim > 1:
+                audio_data = np.mean(audio_data, axis=1)
+            
+            if sample_rate != 22050:
+                audio_data = librosa.resample(y=audio_data, orig_sr=sample_rate, target_sr=22050)
+
+            spectrogram = self.audio_processor.process_audio_chunk(audio_data)
+            spectrogram = spectrogram.to(self.device)
+
+            with torch.no_grad():
+                output = self.model()
