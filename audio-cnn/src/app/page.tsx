@@ -140,7 +140,7 @@ export default function HomePage() {
           ),
         );
 
-        const response = await fetch("inference_url_here", {
+        const response = await fetch("https://argjend111--audio-cnn-inference-audioclassifier-inference-dev.modal.run", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ audio_data: base64String }),
@@ -173,13 +173,14 @@ export default function HomePage() {
   return (
     <main className="min-h-screen bg-stone-50 p-8">
       <div className="mx-auto max-w-[60%]">
-        <div className="mb-12 text-center">
-          <h1 className="mb-4 text-4xl font-light tracking-tight text-stone-900">
-            CNN Audio Visualizer
-          </h1>
-          <p className="text-md mb-8 text-stone-600">
-            Upload a WAV file to see the models predictions and feauture maps
-          </p>
+ <div className="mb-12 text-center bg-white/20 backdrop-blur-lg border border-white/30 rounded-2xl p-8 shadow-lg">
+  <h1 className="mb-4 text-4xl font-light tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-pink-500 via-purple-500 to-cyan-400 drop-shadow-sm">
+    BalkanWave
+  </h1>
+  <p className="text-md mb-8 text-stone-600">
+    Upload a WAV file to see the model’s predictions and feature maps
+  </p>
+
 
           <div className="flex flex-col items-center">
             <div className="relative inline-block">
@@ -282,7 +283,6 @@ export default function HomePage() {
               </Card>
             </div>
 
-            {/* Feature maps */}
             <Card>
               <CardHeader>
                 <CardTitle>Convolutional Layer Outputs</CardTitle>

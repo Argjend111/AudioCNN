@@ -1,4 +1,10 @@
-const Waveform = ({ data, title }: { data: number[]; title: string }) => {
+const Waveform = ({
+  data,
+  title,
+}: {
+  data: number[];
+  title: string;
+}) => {
   if (!data || data.length === 0) return null;
 
   const width = 600;
@@ -35,11 +41,7 @@ const Waveform = ({ data, title }: { data: number[]; title: string }) => {
           preserveAspectRatio="xMidYMid meet"
           className="block max-h-[300px] max-w-full rounded border border-stone-200"
         >
-          <path
-            d={`M 0 ${centerY} H ${width}`}
-            stroke="#e7e5e4"
-            strokeWidth="1"
-          />
+          <path d={`M 0 ${centerY} H ${width}`} stroke="#e7e5e4" strokeWidth="1" />
           <path
             d={pathData}
             fill="none"
