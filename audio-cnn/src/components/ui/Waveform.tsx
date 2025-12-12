@@ -19,7 +19,7 @@ const Waveform = ({ data, title }: { data: number[]; title: string }) => {
       let y = centerY;
 
       if (range > 0) {
-        const normalizedSample = (sample - min) / range; // 0 - 1, -0.5 - 0.5
+        const normalizedSample = (sample - min) / range;
         y = centerY - (normalizedSample - 0.5) * 2 * scaleY;
       }
 
